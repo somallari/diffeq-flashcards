@@ -1,155 +1,107 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Differential Equations Flashcards</title>
-  <style>
-    body { 
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-      background: #121212; 
-      color: #fff; 
-      display: flex; 
-      flex-direction: column; 
-      align-items: center; 
-      justify-content: center; 
-      min-height: 100vh; 
-      margin: 0; 
-    }
-    h1 { margin-bottom: 5px; color: #4dabf7; }
-    p.subtitle { color: #888; margin-bottom: 25px; }
-    .btn-group { margin-bottom: 25px; }
-    button { 
-      background: #1e1e1e; 
-      color: #4dabf7; 
-      border: 2px solid #4dabf7; 
-      padding: 10px 20px; 
-      font-size: 1rem; 
-      margin: 0 5px; 
-      border-radius: 8px; 
-      cursor: pointer; 
-      transition: 0.2s; 
-    }
-    button:hover { background: #4dabf7; color: #121212; }
-    
-    #flashcard-container {
-      display: none;
-      flex-direction: column;
-      align-items: center;
-    }
-
-    .card-counter {
-      font-size: 0.9rem;
-      font-weight: 600;
-      color: #4dabf7;
-      margin-bottom: 12px;
-      letter-spacing: 0.5px;
-    }
-
-    .card { 
-      width: 450px; 
-      height: 240px; 
-      background: #1e1e1e; 
-      border-radius: 14px; 
-      box-shadow: 0 8px 20px rgba(0,0,0,0.5); 
-      display: flex; 
-      flex-direction: column; 
-      align-items: center; 
-      justify-content: center; 
-      padding: 25px; 
-      text-align: center; 
-      cursor: pointer; 
-      box-sizing: border-box; 
-      border: 1px solid #333; 
-    }
-    .card-title { font-size: 0.85rem; color: #888; text-transform: uppercase; margin-bottom: 15px; }
-    .card-body { font-size: 1.25rem; font-weight: 500; line-height: 1.5; }
-    .controls { margin-top: 25px; }
-    .action-btn { background: #4dabf7; color: #121212; border: none; font-weight: bold; }
-    .action-btn:hover { background: #339af0; color: #fff; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Differential Equations Flashcards</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; margin: 40px; background-color: #f4f4f9; }
+        .card { border: 2px solid #333; padding: 25px; margin: 20px auto; max-width: 550px; background: white; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        button, select { padding: 10px 18px; margin: 5px; font-size: 15px; border-radius: 5px; cursor: pointer; }
+        select { background: white; border: 1px solid #ccc; }
+        #answer { color: #2e7d32; font-weight: bold; display: none; margin-top: 15px; }
+        #card-tracker { font-size: 14px; color: #666; margin-top: 10px; }
+    </style>
 </head>
 <body>
 
-  <h1>Differential Equations Reviewer</h1>
-  <p class="subtitle" id="instruction-text">Select a term below to start reviewing</p>
+    <h1>Differential Equations Reviewer</h1>
+    
+    <div>
+        <label for="termSelect"><strong>Select Term:</strong></label>
+        <select id="termSelect" onchange="onTermChange()">
+            <option value="prelim">Prelim</option>
+            <option value="midterm">Midterm</option>
+            <option value="finals">Finals</option>
+        </select>
 
-  <div class="btn-group">
-    <button onclick="selectTerm('prelim')">Prelim</button>
-    <button onclick="selectTerm('midterm')">Midterm</button>
-    <button onclick="selectTerm('finals')">Finals</button>
-  </div>
-
-  <div id="flashcard-container">
-    <div class="card-counter" id="card-counter">Card 1</div>
-    <div class="card" onclick="flipCard()">
-      <div class="card-title" id="card-status">Question (Click to flip)</div>
-      <div class="card-body" id="card-content">Loading...</div>
+        <label for="topicSelect"><strong>Select Topic:</strong></label>
+        <select id="topicSelect" onchange="onTopicChange()">
+            <!-- Populated dynamically -->
+        </select>
     </div>
 
-    <div class="controls">
-      <button class="action-btn" onclick="nextCard()">Next Question</button>
+    <div class="card">
+        <div id="card-tracker">Card 0 of 0</div>
+        <h3 id="question">Loading WebAssembly...</h3>
+        <p id="answer"></p>
+        <button onclick="revealAnswer()">Reveal Answer</button>
+        <button onclick="nextCard()">Next Card</button>
     </div>
-  </div>
 
-  <script src="deck.js"></script>
-  <script>
-    let reviewer = null;
-    let showingAnswer = false;
+    <script src="deck.js"></script>
+    <script>
+        let reviewer = null;
 
-    // Emscripten hook when WASM finishes loading
-    Module.onRuntimeInitialized = function() {
-      try {
-        reviewer = new Module.DiffEqReviewer();
-      } catch (e) {
-        console.error("Error creating DiffEqReviewer:", e);
-      }
-    };
+        Module.onRuntimeInitialized = () => {
+            reviewer = new Module.DiffEqReviewer();
+            onTermChange();
+        };
 
-    function selectTerm(term) {
-      if (!reviewer) {
-        alert("WASM Module is still initializing. Please wait 2 seconds and try clicking again.");
-        return;
-      }
-      reviewer.loadTerm(term);
-      showingAnswer = false;
+        function onTermChange() {
+            if (!reviewer) return;
+            const term = document.getElementById('termSelect').value;
+            const topicSelect = document.getElementById('topicSelect');
+            topicSelect.innerHTML = '';
 
-      document.getElementById('flashcard-container').style.display = 'flex';
-      document.getElementById('instruction-text').innerText = 'Reviewing: ' + term.toUpperCase();
-      
-      updateDisplay();
-    }
+            const count = reviewer.getTopicCount(term);
+            
+            // Add "All Topics" option first
+            let allOpt = document.createElement('option');
+            allOpt.value = "-1";
+            allOpt.innerText = "All Topics";
+            topicSelect.appendChild(allOpt);
 
-    function updateDisplay() {
-      if (!reviewer) return;
+            // Add individual topics
+            for (let i = 0; i < count; i++) {
+                let opt = document.createElement('option');
+                opt.value = i;
+                opt.innerText = reviewer.getTopicName(term, i);
+                topicSelect.appendChild(opt);
+            }
 
-      const statusElem = document.getElementById('card-status');
-      const contentElem = document.getElementById('card-content');
-      const counterElem = document.getElementById('card-counter');
+            onTopicChange();
+        }
 
-      const currentNum = reviewer.getCardIndex();
-      const totalNum = reviewer.getTotalCards();
-      counterElem.innerText = `Card ${currentNum} of ${totalNum}`;
-      
-      if (showingAnswer) {
-        statusElem.innerText = "Answer (Click to flip)";
-        contentElem.innerText = reviewer.getAnswer();
-      } else {
-        statusElem.innerText = "Question (Click to flip)";
-        contentElem.innerText = reviewer.getQuestion();
-      }
-    }
+        function onTopicChange() {
+            if (!reviewer) return;
+            const term = document.getElementById('termSelect').value;
+            const topicIdx = parseInt(document.getElementById('topicSelect').value);
+            
+            reviewer.loadTopic(term, topicIdx);
+            updateCardDisplay();
+        }
 
-    function flipCard() {
-      showingAnswer = !showingAnswer;
-      updateDisplay();
-    }
+        function revealAnswer() {
+            if (!reviewer) return;
+            document.getElementById('answer').style.display = 'block';
+        }
 
-    function nextCard() {
-      if (!reviewer) return;
-      reviewer.nextCard();
-      showingAnswer = false;
-      updateDisplay();
-    }
-  </script>
+        function nextCard() {
+            if (!reviewer) return;
+            reviewer.nextCard();
+            updateCardDisplay();
+        }
+
+        function updateCardDisplay() {
+            document.getElementById('question').innerText = reviewer.getQuestion();
+            document.getElementById('answer').innerText = reviewer.getAnswer();
+            document.getElementById('answer').style.display = 'none';
+
+            const idx = reviewer.getCardIndex();
+            const total = reviewer.getTotalCards();
+            document.getElementById('card-tracker').innerText = total > 0 ? `Card ${idx} of ${total}` : 'No cards available';
+        }
+    </script>
 </body>
 </html>
