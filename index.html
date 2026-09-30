@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Differential Equations Flashcards</title>
+  <style>
+    body { 
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+      background: #121212; 
+      color: #fff; 
+      display: flex; 
+      flex-direction: column; 
+      align-items: center; 
+      justify-content: center; 
+      min-height: 100vh; 
+      margin: 0; 
+    }
+    h1 { margin-bottom: 5px; color: #4dabf7; }
+    p.subtitle { color: #888; margin-bottom: 25px; }
+    .btn-group { margin-bottom: 25px; }
+    button { 
+      background: #1e1e1e; 
+      color: #4dabf7; 
+      border: 2px solid #4dabf7; 
+      padding: 10px 20px; 
+      font-size: 1rem; 
+      margin: 0 5px; 
+      border-radius: 8px; 
+      cursor: pointer; 
+      transition: 0.2s; 
+    }
+    button:hover { background: #4dabf7; color: #121212; }
+    
+    #flashcard-container {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .card-counter {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: #4dabf7;
+      margin-bottom: 12px;
+      letter-spacing: 0.5px;
+    }
+
+    .card { 
+      width: 450px; 
+      height: 240px; 
+      background: #1e1e1e; 
+      border-radius: 14px; 
+      box-shadow: 0 8px 20px rgba(0,0,0,0.5); 
+      display: flex; 
+      flex-direction: column; 
+      align-items: center; 
+      justify-content: center; 
+      padding: 25px; 
+      text-align: center; 
+      cursor: pointer; 
+      box-sizing: border-box; 
+      border: 1px solid #333; 
+    }
+    .card-title { font-size: 0.85rem; color: #888; text-transform: uppercase; margin-bottom: 15px; }
+    .card-body { font-size: 1.25rem; font-weight: 500; line-height: 1.5; }
+    .controls { margin-top: 25px; }
+    .action-btn { background: #4dabf7; color: #121212; border: none; font-weight: bold; }
+    .action-btn:hover { background: #339af0; color: #fff; }
+  </style>
+</head>
+<body>
+
+  <h1>Differential Equations Reviewer</h1>
+  <p class="subtitle" id="instruction-text">Select a term below to start reviewing</p>
+
+  <div class="btn-group">
+    <button onclick="selectTerm('prelim')">Prelim</button>
+    <button onclick="selectTerm('midterm')">Midterm</button>
+    <button onclick="selectTerm('finals')">Finals</button>
+  </div>
+
+  <div id="flashcard-container">
+    <div class="card-counter" id="card-counter">Card 1</div>
+    <div class="card" onclick="flipCard()">
+      <div class="card-title" id="card-status">Question (Click to flip)</div>
+      <div class="card-body" id="card-content">Loading...</div>
+    </div>
+
+    <div class="controls">
+      <button class="action-btn" onclick="nextCard()">Next Question</button>
+    </div>
+  </div>
+
+  <script src="deck.js"></script>
+  <script>
+    let reviewer = null;
+    let showingAnswer = false;
+
+    // Emscripten hook when WASM finishes loading
+    Module.onRuntimeInitialized = function() {
+      try {
+        reviewer = new Module.DiffEqReviewer();
+      } catch (e) {
+        console.error("Error creating DiffEqReviewer:", e);
+      }
+    };
+
+    function selectTerm(term) {
+      if (!reviewer) {
+        alert("WASM Module is still initializing. Please wait 2 seconds and try clicking again.");
+        return;
+      }
+      reviewer.loadTerm(term);
+      showingAnswer = false;
+
+      document.getElementById('flashcard-container').style.display = 'flex';
+      document.getElementById('instruction-text').innerText = 'Reviewing: ' + term.toUpperCase();
+      
+      updateDisplay();
+    }
+
+    function updateDisplay() {
+      if (!reviewer) return;
+
+      const statusElem = document.getElementById('card-status');
+      const contentElem = document.getElementById('card-content');
+      const counterElem = document.getElementById('card-counter');
+
+      const currentNum = reviewer.getCardIndex();
+      const totalNum = reviewer.getTotalCards();
+      counterElem.innerText = `Card ${currentNum} of ${totalNum}`;
+      
+      if (showingAnswer) {
+        statusElem.innerText = "Answer (Click to flip)";
+        contentElem.innerText = reviewer.getAnswer();
+      } else {
+        statusElem.innerText = "Question (Click to flip)";
+        contentElem.innerText = reviewer.getQuestion();
+      }
+    }
+
+    function flipCard() {
+      showingAnswer = !showingAnswer;
+      updateDisplay();
+    }
+
+    function nextCard() {
+      if (!reviewer) return;
+      reviewer.nextCard();
+      showingAnswer = false;
+      updateDisplay();
+    }
+  </script>
+</body>
+</html>
